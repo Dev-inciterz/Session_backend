@@ -59,4 +59,30 @@ router.post('/login', async (req, res) => {
     }
 });
 
+
+
+// Logout
+router.post('/logout', async (req, res) => {
+    console.log("i ahve been hit")
+    try {
+        const token = req.headers.authorization.split(' ')[1]; // assuming token is sent in the format "Bearer <token>"
+        const decoded = jwt.verify(token, 'your_jwt_secret');
+
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        // Invalidate the current token (optional: you can also clear it if desired)
+        user.token = null;
+
+        await user.save();
+
+        res.json({ msg: 'Logged out successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 module.exports = router;
