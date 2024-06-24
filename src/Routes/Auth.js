@@ -31,6 +31,8 @@ router.post('/signup', async (req, res) => {
     }
 });
 
+
+//Login
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
@@ -45,13 +47,27 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ msg: 'Invalid credentials' });
         }
 
+        // Check if tokenExpire is already set
+        if (!user.tokenExpire) {
+            // If tokenExpire is not set (this should ideally not happen if set correctly during signup)
+            return res.status(400).json({ msg: 'Token expiration details missing' });
+        }
+
+        // Generate a new token (if needed, e.g., if token has expired)
         if (user.tokenExpire < Date.now()) {
             const token = jwt.sign({ userId: user.id }, 'your_jwt_secret', { expiresIn: '30d' });
             user.token = token;
             user.tokenExpire = Date.now() + 30 * 24 * 60 * 60 * 1000;
             await user.save();
+        } else {
+
+            const token = jwt.sign({ userId: user.id }, 'your_jwt_secret');
+            user.token = token;
+            await user.save();
+
         }
 
+        // Return the existing or newly generated token and its expiration time
         res.json({ token: user.token, expiresIn: user.tokenExpire });
     } catch (err) {
         console.error(err.message);
@@ -61,28 +77,37 @@ router.post('/login', async (req, res) => {
 
 
 
+
 // Logout
 router.post('/logout', async (req, res) => {
     try {
-        console.log("i am beiung hit")
-        const token = req.headers.authorization.split(' ')[1]; // assuming token is sent in the format "Bearer <token>"
-        const decoded = jwt.verify(token, 'your_jwt_secret');
-
-        const user = await User.findById(decoded.userId);
-        if (!user) {
-            return res.status(404).json({ msg: 'User not found' });
-        }
-
-        // Invalidate the current token (optional: you can also clear it if desired)
-        user.token = null;
-
-        await user.save();
-
-        res.json({ msg: 'Logged out successfully' });
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ msg: 'Unauthorized' });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, 'your_jwt_secret');
+  
+      const user = await User.findById(decoded.userId);
+      if (!user) {
+        return res.status(404).json({ msg: 'User not found' });
+      }
+  
+      // Invalidate the current token (optional: you can also clear it if desired)
+      user.token = null;
+  
+      await user.save();
+  
+      res.json({ msg: 'Logged out successfully' });
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Server error');
+      console.error(err);
+      if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({ msg: 'Invalid token' });
+      }
+      res.status(500).send('Server error');
     }
-});
+  });
+  
 
 module.exports = router;
