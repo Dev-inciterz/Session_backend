@@ -23,6 +23,7 @@ router.post('/signup', async (req, res) => {
         user.tokenExpire = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
         await user.save();
+        console.log("this is the user", email, password)
         res.json({ token, expiresIn: user.tokenExpire });
     } catch (err) {
         console.error(err.message);
