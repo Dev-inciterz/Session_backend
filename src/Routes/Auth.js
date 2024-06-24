@@ -63,8 +63,8 @@ router.post('/login', async (req, res) => {
 
 // Logout
 router.post('/logout', async (req, res) => {
-    console.log("i ahve been hit")
     try {
+        console.log("i am beiung hit")
         const token = req.headers.authorization.split(' ')[1]; // assuming token is sent in the format "Bearer <token>"
         const decoded = jwt.verify(token, 'your_jwt_secret');
 
@@ -80,7 +80,7 @@ router.post('/logout', async (req, res) => {
 
         res.json({ msg: 'Logged out successfully' });
     } catch (err) {
-        console.error(err.message);
+        console.error(err);
         res.status(500).send('Server error');
     }
 });
